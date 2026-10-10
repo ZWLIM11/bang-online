@@ -1,0 +1,6 @@
+.effect-trail{position:absolute;z-index:9;height:4px;transform-origin:left center;pointer-events:none;background:linear-gradient(90deg,transparent,#ffdc8a 25%,#fff5cc 85%,transparent);box-shadow:0 0 12px #ffbb52;animation:beamFlash 1.3s ease-out both}
+.effect-trail.spell-trail{height:6px;background:linear-gradient(90deg,transparent,#a879ed 25%,#e5c7ff 85%,transparent);box-shadow:0 0 18px #b778ed}
+.effect-pulse{position:absolute;z-index:9;width:35px;height:35px;transform:translate(-50%,-50%);border:3px solid #ffc66d;border-radius:50%;box-shadow:0 0 20px #ffaa54;pointer-events:none;animation:pulseExpand 1.2s ease-out both}
+.spell-pulse{border-color:#d5a6ff;box-shadow:0 0 20px #bc82ed}
+@keyframes beamFlash{0%{opacity:0;filter:blur(8px)}18%{opacity:1;filter:blur(0)}50%{opacity:1}100%{opacity:0}}
+@keyframes pulseExpand{0%{opacity:1;scale:.5}100%{opacity:0;scale:7}}
