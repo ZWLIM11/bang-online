@@ -44,4 +44,5 @@ The game uses original card names and simplified card sets. It is a playable fou
 4. A target may block with Dodge or Ward. The server resolves the response before damage.
 5. The server sends each player a filtered view of the same authoritative game state.
 
-The current scene uses CSS perspective, layered props and synchronized effects. It leaves room for a later WebGL character and animation pass without changing the rule engine or visibility model.
+The scene uses Three.js WebGL with original modeled cowboy figures, weapons, lanterns, mugs, ammunition, a wooden table and a furnished saloon bar. Drag to rotate the camera or switch between seated and overhead views. Weapon and spell effects follow public game events; costumes never reveal hidden roles. A CSS table remains available when WebGL cannot initialize. These are stylized procedural models, not photorealistic scanned people. Three.js 0.170.0 is vendored under its included MIT license.
+

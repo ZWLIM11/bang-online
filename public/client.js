@@ -1,3 +1,6 @@
+let saloon = null;
+import('./saloon.js').then(({createSaloon}) => { saloon = createSaloon(document.getElementById('scene-preview')); if(current) { mountSaloon(); if(state) saloon.update(state); } }).catch(error => { console.warn('3D scene unavailable', error); document.getElementById('scene-preview').textContent = '3D preview unavailable on this device. The table is still playable.'; });
+function mountSaloon() { if(!saloon)return; saloon.mount(document.getElementById('saloon-canvas')); document.querySelector('.table-scene').classList.add('has-3d'); document.getElementById('camera-tools').classList.remove('hidden'); }
 const $ = id => document.getElementById(id);
 const api = async (path, data, token) => {
   const headers = { ...(data ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) };
@@ -41,6 +44,7 @@ const setSession = value => {
   $('landing').classList.add('hidden');
   $('game').classList.remove('hidden');
   $('room-tag').textContent = `TABLE ${value.code}`;
+  mountSaloon();
   refresh();
   clearInterval(timer);
   timer = setInterval(refresh, 800);
@@ -80,12 +84,13 @@ function render(next) {
   $('discard-count').textContent = `${next.discardCount} DISCARD`;
   $('event-banner').classList.toggle('hidden', !next.event);
   if (next.event) $('event-banner').textContent = `${next.event.name}  ·  ${next.event.text}`;
-  renderSeats(next);
+  renderSeats(next); saloon?.update(next);
   renderHand(next);
   renderTargets(next);
   renderSidebar(next);
   renderControls(next);
   const newest = next.history[0];
+  if (lastEffect) next.history.filter(entry => entry.id > lastEffect && entry.effect && entry !== newest).reverse().forEach(entry => saloon?.play(entry.effect));
   if (newest?.effect && newest.id > lastEffect) {
     lastEffect = newest.id;
     showEffect(newest.effect, next);
@@ -97,6 +102,7 @@ function renderSeats(next) {
   next.players.forEach((player, i) => {
     const angle = (-90 + i * 360 / count) * Math.PI / 180;
     const seat = el('div', `seat ${player.id === next.selfId ? 'self' : ''} ${player.id === next.turnId && next.started ? 'active' : ''} ${player.hp <= 0 && next.started ? 'fallen' : ''}`);
+    seat.dataset.playerId = player.id;
     seat.style.left = `${50 + Math.cos(angle) * 39}%`;
     seat.style.top = `${50 + Math.sin(angle) * 37}%`;
     const avatar = el('div', 'avatar'); avatar.append(el('span', 'hat', '⌒'), el('span', 'face', player.name[0]?.toUpperCase() || '?'));
@@ -148,6 +154,8 @@ function renderControls(next) {
   if (next.started && me?.hp <= 0) $('prompt').textContent = 'You are out. You can watch the rest of the game.';
 }
 function showEffect(effect, next) {
+  saloon?.play(effect);
+  const announcement = document.getElementById('action-announcement'); announcement.textContent = effect.label || effect.kind.toUpperCase(); announcement.classList.remove('hidden'); clearTimeout(announcement.timeout); announcement.timeout = setTimeout(() => announcement.classList.add('hidden'), 2400);
   const stage = $('action-stage');
   $('action-icon').textContent = icons[effect.label] || (effect.kind === 'damage' ? '✷' : '✦');
   $('action-label').textContent = effect.label || effect.kind.toUpperCase();
@@ -221,5 +229,9 @@ $('copy').onclick = async () => {
 };
 const invitation = new URLSearchParams(location.search).get('join');
 if (invitation) $('join-code').value = invitation.toUpperCase();
+document.getElementById('camera-seat').onclick = () => saloon?.reset();
+document.getElementById('camera-top').onclick = () => saloon?.overhead();
 loadModes();
 if (current) setSession(current);
+
+
