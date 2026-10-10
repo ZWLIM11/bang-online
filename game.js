@@ -59,6 +59,7 @@ export function joinRoom(room, name) {
   if (room.players.length >= MODES[room.mode].max) throw Error('This table is full.');
   const player = { id: randomUUID(), token: randomUUID(), name: cleanName(name), hp: 0, maxHp: 0, hand: [], role: null, weapon: null };
   room.players.push(player);
+  if (!room.host) room.host = player.id;
   log(room, `${player.name} joined the table.`);
   return player;
 }
@@ -168,7 +169,32 @@ function resolvePending(room, blocked) {
 }
 export function act(room, token, action) {
   const player = room.players.find(p => p.token === token);
-  if (!player) throw Error('Player not found.');
+  if (!token || !player) throw Error('Player not found.');
+  if (action.type === 'leave') {
+    if (!room.started) {
+      room.players = room.players.filter(p => p !== player);
+      if (room.host === player.id) room.host = room.players[0]?.id || null;
+      log(room, `${player.name} left the table.`);
+      return;
+    }
+    if (player.hp > 0 && !room.winner) {
+      player.hp = 0; room.discard.push(...player.hand); player.hand = []; player.weapon = null;
+      log(room, `${player.name} forfeited and left. Role: ${player.role}.`, {kind:'eliminate',to:player.id});
+      checkWinner(room, null, player);
+      if (!active(room).length) { room.winner = 'The table is empty.'; room.phase = 'finished'; }
+      if (room.winner) room.pending = null;
+      else {
+        if (room.pending) {
+          const p = room.pending;
+          p.targets = p.targets.slice(p.index).filter(id => room.players.some(x => x.id === id && x.hp > 0)); p.index = 0;
+          if (!p.targets.length) { room.pending = null; room.phase = 'play'; }
+        }
+        if (!room.pending && room.players[room.turn].hp <= 0) nextTurn(room);
+      }
+    }
+    player.token = null;
+    return;
+  }
   if (!room.started || room.winner) throw Error('No active game.');
   if (room.pending) {
     const target = room.players.find(p => p.id === room.pending.targets[room.pending.index]);
@@ -232,7 +258,7 @@ function handLimit(room, player) {
 }
 export function view(room, token) {
   const self = room.players.find(p => p.token === token);
-  if (!self) throw Error('Player not found.');
+  if (!token || !self) throw Error('Player not found.');
   return {
     code: room.code, mode: room.mode, modeInfo: MODES[room.mode], started: room.started,
     host: room.host === self.id, selfId: self.id, hand: self.hand,

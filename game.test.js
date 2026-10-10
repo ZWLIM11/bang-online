@@ -71,3 +71,17 @@ test('showdown roles are public and high noon has a public event', () => {
   const noon = setup('highnoon');
   assert.ok(view(noon, noon.players[1].token).event?.name);
 });
+
+test('leaving lobby transfers host and removes access', () => {
+  const r=createRoom('quick','Host'); const old=r.players[0].token; const other=joinRoom(r,'Guest');
+  act(r,old,{type:'leave'}); assert.equal(r.host,other.id); assert.equal(r.players.length,1); assert.throws(()=>view(r,old));
+});
+test('forfeit during an attack resolves winner and revokes access', () => {
+  const r=setup('quick'); const a=r.players[r.turn], b=r.players.find(p=>p!==a); const token=b.token;
+  const c=addCard(a,'Shoot'); act(r,a.token,{type:'play',cardId:c.id,targetId:b.id});
+  act(r,token,{type:'leave'}); assert.equal(r.pending,null); assert.equal(r.phase,'finished'); assert.match(r.winner,/Host/); assert.throws(()=>view(r,token)); assert.throws(()=>view(r,null));
+});
+test('leaving active turn advances a three-player game', () => {
+  const r=createRoom('quick','One'); joinRoom(r,'Two');joinRoom(r,'Three');startRoom(r,r.players[0].token);
+  act(r,r.players[0].token,{type:'leave'});assert.equal(r.turn,1);assert.equal(r.phase,'play');assert.equal(r.winner,null);
+});

@@ -6,7 +6,7 @@ import { act, createRoom, joinRoom, MODES, startRoom, view } from './game.js';
 
 const root = fileURLToPath(new URL('./public/', import.meta.url));
 const rooms = new Map();
-const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
+const mime = { '.png': 'image/png', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 const json = (res, code, data) => {
   res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(data));
@@ -47,11 +47,11 @@ const server = http.createServer(async (req, res) => {
       const room = getRoom(data.code);
       if (data.action?.type === 'start') startRoom(room, token);
       else act(room, token, data.action || {});
-      return json(res, 200, view(room, token));
+      return json(res, 200, data.action?.type === 'leave' ? { left: true } : view(room, token));
     }
     if (req.method !== 'GET') return json(res, 404, { error: 'Not found.' });
     const filename = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
+    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'interactions.js', 'interactions.css', 'art.js', 'art/portraits.png', 'art/cards.png', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
     const bytes = await readFile(join(root, filename));
     res.writeHead(200, { 'content-type': mime[extname(filename)], 'cache-control': 'no-cache' });
     res.end(bytes);
@@ -62,4 +62,6 @@ const server = http.createServer(async (req, res) => {
 
 const port = Number(process.env.PORT || 3000);
 server.listen(port, () => console.log(`Saloon table ready at http://localhost:${port}`));
+
+
 

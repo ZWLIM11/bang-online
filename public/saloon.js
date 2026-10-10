@@ -75,8 +75,21 @@ export function createSaloon(host) {
     for(let y=1.3;y<1.8;y+=.13)ball(g,.022,brass,0,y,.31);
     cyl(g,.13,.15,.17,skin,0,1.97);
     const head=ball(g,.24,skin,0,2.2);head.scale.set(.82,1.25,.88);
-    ball(g,.055,skin,0,2.2,.22);for(const x of [-.082,.082])ball(g,.022,mat('#20160f'),x,2.27,.19);
-    const beard=ball(g,.195,mat(index%2?'#4b3020':'#29201b'),0,2.07,.04);beard.scale.set(.85,.65,1);
+    const nose=ball(g,.045,skin,0,2.2,.22);nose.scale.set(.7,1.3,1.2);
+    for(const x of [-.085,.085]){
+      const eye=ball(g,.036,mat('#ddcbb5'),x,2.27,.18);eye.scale.set(1,.5,.45);
+      ball(g,.013,mat('#302b20'),x,2.272,.199);
+      rod(g,[x-.039,2.307,.181],[x+.028,2.313,.19],.011,leather);
+      ball(g,.043,skin,Math.sign(x)*.20,2.20,0);
+    }
+    rod(g,[-.055,2.105,.216],[.055,2.105,.216],.012,mat('#774a36'));
+    for(const side of [-1,1]){
+      const lapel=box(g,.16,.50,.045,coat,side*.19,1.62,.27);lapel.rotation.z=side*-.27;
+      box(g,.12,.09,.025,leather,side*.23,1.48,.30);
+      for(let j=0;j<4;j++)rod(g,[side*.3+j*.02,1.52,.73],[side*.3+j*.02,1.47,.8],.014,skin);
+    }
+    const beard=ball(g,.175,mat(index%2?'#4b3020':'#29201b'),0,2.07,.04);beard.scale.set(.85,.48,1);
+    for(let i=0;i<18;i++){const a=(i/18)*Math.PI;rod(g,[Math.cos(a)*.14,2.10,.15+Math.sin(a)*.025],[Math.cos(a)*.125,2.01,.15],.008,mat(index%2?'#694832':'#413126'));}
     cyl(g,.17,.24,.12,scarf,0,1.94);const bandana=box(g,.20,.3,.055,scarf,.03,1.81,.29);bandana.rotation.z=.35;
     const brim=cyl(g,.43,.44,.055,leather,0,2.48);brim.scale.z=.85;brim.rotation.z=index%2?.08:-.06;
     const crown=cyl(g,.24,.29,.3,leather,0,2.64);crown.scale.z=.8;cyl(g,.285,.29,.07,scarf,0,2.53).scale.z=.8;

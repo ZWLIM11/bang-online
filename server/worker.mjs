@@ -87,7 +87,7 @@ export class SaloonRoom {
           } else if (url.pathname === '/action' && request.method === 'POST') {
             if (input.action?.type === 'start') startRoom(this.room, token);
             else act(this.room, token, input.action || {});
-            result = view(this.room, token);
+            result = input.action?.type === 'leave' ? { left: true } : view(this.room, token);
             changed = true;
           } else return json({ error: 'Method not allowed.' }, 405);
         }

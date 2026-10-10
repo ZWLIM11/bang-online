@@ -1,3 +1,5 @@
+import { initInteractions } from './interactions.js';
+import { artwork, portrait } from './art.js';
 let saloon = null;
 import('./saloon.js').then(({createSaloon}) => { saloon = createSaloon(document.getElementById('scene-preview')); if(current) { mountSaloon(); if(state) saloon.update(state); } }).catch(error => { console.warn('3D scene unavailable', error); document.getElementById('scene-preview').textContent = '3D preview unavailable on this device. The table is still playable.'; });
 function mountSaloon() { if(!saloon)return; saloon.mount(document.getElementById('saloon-canvas')); document.querySelector('.table-scene').classList.add('has-3d'); document.getElementById('camera-tools').classList.remove('hidden'); }
@@ -70,9 +72,11 @@ async function refresh() {
 async function action(payload) {
   try {
     const next = await api('/api/action', { code: current.code, action: payload }, current.token);
+    if (next.left) { clearInterval(timer); sessionStorage.removeItem('saloon-session'); location.assign(location.pathname); return true; }
     render(next);
     state = next;
-  } catch (error) { toast(error.message); }
+    return true;
+  } catch (error) { toast(error.message); return false; }
 }
 function render(next) {
   $('game-mode').textContent = next.modeInfo.name.toUpperCase();
@@ -88,7 +92,7 @@ function render(next) {
   renderHand(next);
   renderTargets(next);
   renderSidebar(next);
-  renderControls(next);
+  renderControls(next); ui.update(next);
   const newest = next.history[0];
   if (lastEffect) next.history.filter(entry => entry.id > lastEffect && entry.effect && entry !== newest).reverse().forEach(entry => saloon?.play(entry.effect));
   if (newest?.effect && newest.id > lastEffect) {
@@ -105,8 +109,8 @@ function renderSeats(next) {
     seat.dataset.playerId = player.id;
     seat.style.left = `${50 + Math.cos(angle) * 39}%`;
     seat.style.top = `${50 + Math.sin(angle) * 37}%`;
-    const avatar = el('div', 'avatar'); avatar.append(el('span', 'hat', '⌒'), el('span', 'face', player.name[0]?.toUpperCase() || '?'));
-    const info = el('div', 'seat-info');
+    const avatar = el('div', 'portrait-badge'); portrait(avatar, i);
+    const info = el('button', 'seat-info'); info.type = 'button'; info.setAttribute('aria-label', 'Inspect ' + player.name); info.onclick = () => ui.player(player.id);
     info.append(el('strong', '', player.name + (player.id === next.selfId ? ' · YOU' : '')), el('small', '', next.started ? `${'●'.repeat(Math.max(0, player.hp))}  ${player.handCount} cards${player.weapon ? ' · Rifle' : ''}` : 'Waiting'));
     if (player.role) info.append(el('span', 'role-chip', player.role));
     seat.append(avatar, info); area.append(seat);
@@ -119,8 +123,9 @@ function renderHand(next) {
     const item = el('button', `hand-card ${card.type.includes('Hex') || card.type === 'Ward' || card.type.includes('Burst') ? 'arcane' : ''}`);
     item.type = 'button';
     item.append(el('span', 'card-corner', 'H&H'), el('span', 'card-icon', icons[card.type]), el('strong', '', card.type), el('small', '', descriptions[card.type]));
+    artwork(item.querySelector('.card-icon'),card.type);
     if (card.id === selected) item.classList.add('selected');
-    item.onclick = () => { selected = card.id; renderHand(next); };
+    item.onclick = () => ui.inspect(card.id);
     hand.append(item);
   });
 }
@@ -210,7 +215,7 @@ async function loadModes() {
 $('create').onclick = async () => { try { setSession(await api('/api/create', { name: $('name').value, mode: selectedMode })); } catch (error) { toast(error.message); } };
 $('join').onclick = async () => { try { setSession(await api('/api/join', { name: $('name').value, code: $('join-code').value })); } catch (error) { toast(error.message); } };
 $('start').onclick = () => action({ type: 'start' });
-$('end').onclick = () => action({ type: 'end' });
+$('end').onclick = () => ui.end();
 $('pass').onclick = () => action({ type: 'pass' });
 $('play').onclick = () => {
   if (!selected) return toast('Select a card first.');
@@ -231,7 +236,9 @@ const invitation = new URLSearchParams(location.search).get('join');
 if (invitation) $('join-code').value = invitation.toUpperCase();
 document.getElementById('camera-seat').onclick = () => saloon?.reset();
 document.getElementById('camera-top').onclick = () => saloon?.overhead();
+const ui = initInteractions({ act: action, descriptions, icons, notify: toast, selectCard: id => { selected = id; if(state) renderHand(state); }, targetPlayer: id => { $('target').value = id; } });
 loadModes();
 if (current) setSession(current);
+
 
 

@@ -46,3 +46,8 @@ The game uses original card names and simplified card sets. It is a playable fou
 
 The scene uses Three.js WebGL with original modeled cowboy figures, weapons, lanterns, mugs, ammunition, a wooden table and a furnished saloon bar. Drag to rotate the camera or switch between seated and overhead views. Weapon and spell effects follow public game events; costumes never reveal hidden roles. A CSS table remains available when WebGL cannot initialize. These are stylized procedural models, not photorealistic scanned people. Three.js 0.170.0 is vendored under its included MIT license.
 
+
+## Interactive presentation
+Cards open illustrated detail dialogs with legal target choices. Player nameplates and the right-hand saloon desk expose public information, private role help, the skill library, rules, and invites. Incoming attacks open response dialogs; turn hints and optional sound alerts guide play. Quit leaves a lobby (transferring host) or forfeits an active seat. Character portraits and skill illustrations are original generated raster artwork; the actual 3D characters remain procedural models with refined facial and clothing details.
+
+Artwork: built-in image_gen created public/art/portraits.png and public/art/cards.png. Prompt brief: a precise 4×2 atlas of realistic adult Western character busts under warm saloon lighting; and a precise 4×2 atlas of realistic revolver, deflected bullet, tonic, rifle, dust hex, magical ward, lantern burst, and crossed revolvers illustrations on aged parchment. No text or gutters. Portrait assignment is cosmetic and does not identify roles.
