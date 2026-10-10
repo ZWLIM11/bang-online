@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { act, createRoom, joinRoom, MODES, startRoom, view } from './game.js';
+import { tickBots } from './ai.js';
 
 const root = fileURLToPath(new URL('./public/', import.meta.url));
 const rooms = new Map();
@@ -41,7 +42,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { code: data.code.toUpperCase(), token: player.token });
     }
     const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-    if (url.pathname === '/api/state' && req.method === 'GET') return json(res, 200, view(getRoom(url.searchParams.get('code')), token));
+    if (url.pathname === '/api/state' && req.method === 'GET') { const room=getRoom(url.searchParams.get('code')); view(room,token); tickBots(room); return json(res,200,view(room,token)); }
     if (url.pathname === '/api/action' && req.method === 'POST') {
       const data = await body(req);
       const room = getRoom(data.code);
@@ -51,7 +52,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method !== 'GET') return json(res, 404, { error: 'Not found.' });
     const filename = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'interactions.js', 'interactions.css', 'art.js', 'art/portraits.png', 'art/cards.png', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
+    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'interactions.js', 'interactions.css', 'art.js', 'art/portraits.png', 'art/cards.png', 'daylight.css', 'art/saloon-daylight.png', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
     const bytes = await readFile(join(root, filename));
     res.writeHead(200, { 'content-type': mime[extname(filename)], 'cache-control': 'no-cache' });
     res.end(bytes);
@@ -62,6 +63,7 @@ const server = http.createServer(async (req, res) => {
 
 const port = Number(process.env.PORT || 3000);
 server.listen(port, () => console.log(`Saloon table ready at http://localhost:${port}`));
+
 
 
 

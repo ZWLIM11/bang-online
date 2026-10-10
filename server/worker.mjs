@@ -1,4 +1,5 @@
 import { act, createRoom, joinRoom, MODES, startRoom, view } from '../game.js';
+import { tickBots } from '../ai.js';
 
 const json = (value, status = 200) => Response.json(value, { status, headers: { 'cache-control': 'no-store' } });
 const codePattern = /^[A-Z2-9]{6}$/;
@@ -83,6 +84,8 @@ export class SaloonRoom {
             result = { code: this.room.code, token: player.token };
             changed = true;
           } else if (url.pathname === '/state' && request.method === 'GET') {
+            view(this.room, token);
+            changed = tickBots(this.room);
             result = view(this.room, token);
           } else if (url.pathname === '/action' && request.method === 'POST') {
             if (input.action?.type === 'start') startRoom(this.room, token);

@@ -45,6 +45,7 @@ const setSession = value => {
   sessionStorage.setItem('saloon-session', JSON.stringify(value));
   $('landing').classList.add('hidden');
   $('game').classList.remove('hidden');
+  document.body.classList.add('at-table');
   $('room-tag').textContent = `TABLE ${value.code}`;
   mountSaloon();
   refresh();
@@ -64,6 +65,7 @@ async function refresh() {
       current = null; state = null;
       $('game').classList.add('hidden');
       $('landing').classList.remove('hidden');
+      document.body.classList.remove('at-table');
       $('room-tag').textContent = 'WILD WEST TABLETOP';
     }
     toast(error.message);
@@ -93,12 +95,9 @@ function render(next) {
   renderTargets(next);
   renderSidebar(next);
   renderControls(next); ui.update(next);
-  const newest = next.history[0];
-  if (lastEffect) next.history.filter(entry => entry.id > lastEffect && entry.effect && entry !== newest).reverse().forEach(entry => saloon?.play(entry.effect));
-  if (newest?.effect && newest.id > lastEffect) {
-    lastEffect = newest.id;
-    showEffect(newest.effect, next);
-  }
+  const events=next.history.filter(entry=>entry.id>lastEffect&&entry.effect).reverse();
+  events.forEach(entry=>showEffect(entry.effect,next));
+  lastEffect=Math.max(lastEffect,next.history[0]?.id||0);
 }
 function renderSeats(next) {
   const area = $('seats'); area.replaceChildren();
@@ -139,6 +138,7 @@ function renderSidebar(next) {
   const info = $('table-info'); info.replaceChildren();
   info.append(el('p', '', `Room code: ${next.code}`), el('p', '', `Seats: ${next.players.length} / ${next.modeInfo.max}`), el('p', '', next.modeInfo.summary));
   $('start').classList.toggle('hidden', next.started || !next.host);
+  document.querySelector('.bot-controls')?.classList.toggle('hidden',next.started||!next.host);
   const history = $('history'); history.replaceChildren();
   if (!next.history.length) history.append(el('p', 'quiet', 'The saloon is quiet.'));
   next.history.forEach(entry => history.append(el('p', '', entry.message)));
@@ -173,6 +173,7 @@ function showEffect(effect, next) {
     }
   });
   const scene = document.querySelector('.table-scene');
+  if(saloon)return;
   const bounds = scene.getBoundingClientRect();
   const seatNodes = [...document.querySelectorAll('.seat')];
   const point = node => {
@@ -215,6 +216,16 @@ async function loadModes() {
 $('create').onclick = async () => { try { setSession(await api('/api/create', { name: $('name').value, mode: selectedMode })); } catch (error) { toast(error.message); } };
 $('join').onclick = async () => { try { setSession(await api('/api/join', { name: $('name').value, code: $('join-code').value })); } catch (error) { toast(error.message); } };
 $('start').onclick = () => action({ type: 'start' });
+const soloButton=el('button','primary solo-button','Play solo with AI →');
+$('create').before(soloButton);
+soloButton.onclick=async()=>{soloButton.disabled=true;try{const s=await api('/api/create',{name:$('name').value||'Gunslinger',mode:selectedMode});await api('/api/action',{code:s.code,action:{type:'fillBots',count:selectedMode==='showdown'?3:4}},s.token);await api('/api/action',{code:s.code,action:{type:'start'}},s.token);setSession(s);}catch(e){toast(e.message);}finally{soloButton.disabled=false;}};
+const botControls=el('div','bot-controls');
+const fillButton=el('button','primary','Fill empty seats with AI');fillButton.onclick=()=>action({type:'fillBots'});
+const removeButton=el('button','secondary','Remove AI');removeButton.onclick=()=>action({type:'removeBots'});
+botControls.append(fillButton,removeButton);$('start').after(botControls);
+const cameraFirst=el('button','','My seat');cameraFirst.onclick=()=>saloon?.firstPerson();$('camera-tools').prepend(cameraFirst);
+const gestures=el('div','gesture-bar');gestures.setAttribute('aria-label','Character gestures');
+[['wave','Tip hat'],['cheers','Cheers'],['taunt','Challenge']].forEach(([emote,label])=>{const b=el('button','small-btn',label);b.onclick=()=>action({type:'emote',emote});gestures.append(b);});$('camera-tools').after(gestures);
 $('end').onclick = () => ui.end();
 $('pass').onclick = () => action({ type: 'pass' });
 $('play').onclick = () => {

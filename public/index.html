@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Hex & Holsters — Saloon Table</title>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/fx.css"><link rel="stylesheet" href="/scene.css"><link rel="stylesheet" href="/interactions.css">
+  <link rel="stylesheet" href="/fx.css"><link rel="stylesheet" href="/scene.css"><link rel="stylesheet" href="/interactions.css"><link rel="stylesheet" href="/daylight.css">
 </head>
 <body>
   <div class="grain"></div>
   <header class="topbar"><div class="brand"><span class="brand-icon">✦</span><span>HEX <em>&</em> HOLSTERS</span></div><div id="room-tag" class="room-tag">WILD WEST TABLETOP</div></header>
   <main>
     <section id="landing" class="landing">
-      <div class="hero"><p class="eyebrow">A SHARED SALOON TABLE</p><h1>Choose your<br><i>showdown.</i></h1><p>Cards stay in your hand until you play them. Every shot, spell and response then comes alive on the table for everyone.</p><div id="scene-preview" class="scene-preview"></div></div>
+      <div class="hero"><p class="eyebrow">A SHARED SALOON TABLE</p><h1>Pull up a chair.<br><i>Make your move.</i></h1><p>A sunlit saloon. A table full of rivals. Play solo against AI or invite your friends — every shot, spell and showdown unfolds in 3D.</p><div id="scene-preview" class="scene-preview"></div></div>
       <div class="lobby-card"><p class="eyebrow">01 / TAKE A SEAT</p><label>Your name<input id="name" maxlength="20" placeholder="Your gunslinger name" autocomplete="nickname"></label><p class="mode-label">CHOOSE A GAME MODE</p><div id="modes" class="mode-grid"></div><button id="create" class="primary">Create table <span>↗</span></button><div class="divider"><span>OR JOIN FRIENDS</span></div><div class="join-row"><input id="join-code" placeholder="ROOM CODE" maxlength="6" aria-label="Room code"><button id="join" class="secondary">Join table</button></div></div>
     </section>
     <section id="game" class="game hidden">
@@ -24,5 +24,6 @@
   <script type="module" src="/client.js"></script>
 </body>
 </html>
+
 
 

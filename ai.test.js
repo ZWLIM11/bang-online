@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRoom,joinRoom,act,startRoom,view,MODES} from './game.js';
+import {tickBots} from './ai.js';
+test('only lobby host may fill or remove AI seats',()=>{const r=createRoom('classic','Host');const guest=joinRoom(r,'Friend');assert.throws(()=>act(r,guest.token,{type:'fillBots'}));act(r,r.players[0].token,{type:'fillBots'});assert.equal(r.players.length,4);assert.equal(r.players.filter(p=>p.bot).length,2);act(r,r.players[0].token,{type:'removeBots'});assert.equal(r.players.length,2);});
+test('AI progresses all modes, uses legal engine moves and reaches a result',()=>{for(const mode of Object.keys(MODES)){const r=createRoom(mode,'Host');const token=r.players[0].token;act(r,token,{type:'fillBots'});startRoom(r,token);r.players[0].bot=true;let steps=0;while(!r.winner&&steps<3000){assert.equal(tickBots(r,++steps*2000),true,`${mode} stalled at ${r.phase}`);}assert.ok(r.winner,`${mode} failed to finish`);assert.ok(r.players.every(p=>p.hp>=0));}});
+test('AI pacing allows at most one move per interval and does not expose hands',()=>{const r=createRoom('quick','Host');const token=r.players[0].token;act(r,token,{type:'fillBots'});startRoom(r,token);r.players[0].bot=true;assert.equal(tickBots(r,10000),true);const v=r.version;assert.equal(tickBots(r,10001),false);assert.equal(r.version,v);const s=view(r,token);assert.ok(s.players.every(p=>!('hand' in p)&&!('token' in p)));});

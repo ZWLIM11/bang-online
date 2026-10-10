@@ -170,6 +170,22 @@ function resolvePending(room, blocked) {
 export function act(room, token, action) {
   const player = room.players.find(p => p.token === token);
   if (!token || !player) throw Error('Player not found.');
+  if (action.type === 'fillBots') {
+    if (room.started || room.host !== player.id) throw Error('Only the host can add bots before the game starts.');
+    const wanted = Math.min(MODES[room.mode].max, Math.max(MODES[room.mode].min, Number(action.count) || 4));
+    const names = ['Cassidy', 'Ruby', 'Doc', 'Bonnie', 'Django', 'Pearl'];
+    while (room.players.length < wanted) { const p = joinRoom(room, `${names[room.players.length-1]} · AI`); p.bot = true; }
+    return;
+  }
+  if (action.type === 'removeBots') {
+    if (room.started || room.host !== player.id) throw Error('Only the host can remove bots in the lobby.');
+    room.players = room.players.filter(p => !p.bot); log(room, 'AI seats are now open for friends.'); return;
+  }
+  if (action.type === 'emote') {
+    if (!['wave','cheers','taunt'].includes(action.emote)) throw Error('Unknown gesture.');
+    if (Date.now()-(player.lastEmote||0)<3000) throw Error('Wait a moment before another gesture.');
+    player.lastEmote=Date.now(); log(room, `${player.name} ${ {wave:'tips their hat',cheers:'raises a toast',taunt:'challenges the table'}[action.emote]}.`, {kind:'emote',from:player.id,label:action.emote}); return;
+  }
   if (action.type === 'leave') {
     if (!room.started) {
       room.players = room.players.filter(p => p !== player);
@@ -268,7 +284,7 @@ export function view(room, token) {
     usedShot: room.usedShot, usedSpell: room.usedSpell,
     event: room.mode === 'highnoon' && room.eventIndex >= 0 ? EVENTS[room.eventIndex] : null,
     deckCount: room.deck.length, discardCount: room.discard.length, handLimit: self.hp > 0 ? handLimit(room, self) : 0,
-    players: room.players.map(p => ({ id: p.id, name: p.name, hp: p.hp, maxHp: p.maxHp, handCount: p.hand.length, weapon: p.weapon, role: p === self || p.role === 'Sheriff' || room.mode === 'showdown' || p.hp <= 0 || room.winner ? p.role : null })),
+    players: room.players.map(p => ({ id: p.id, name: p.name, bot: !!p.bot, hp: p.hp, maxHp: p.maxHp, handCount: p.hand.length, weapon: p.weapon, role: p === self || p.role === 'Sheriff' || room.mode === 'showdown' || p.hp <= 0 || room.winner ? p.role : null })),
     history: room.history.slice(0, 15)
   };
 }
