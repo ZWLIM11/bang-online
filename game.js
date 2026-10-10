@@ -9,12 +9,22 @@ const randomInt = max => {
 };
 
 export const MODES = {
-  classic: { name: 'Classic Saloon', min: 4, max: 7, summary: 'Hidden roles, distance and reaction cards.' },
+  classic: { name: 'Classic Saloon · adapted', min: 4, max: 7, summary: 'BANG!-inspired subset: hidden roles and seven character abilities. Not the full official deck.' },
   hex: { name: 'Hex & Holsters', min: 4, max: 7, summary: 'Classic roles with visible tabletop spells.' },
-  highnoon: { name: 'High Noon Events', min: 4, max: 7, summary: 'Classic rules with a public event each round.' },
+  highnoon: { name: 'Saloon Events · house mode', min: 4, max: 7, summary: 'Three original rotating events. Not the official High Noon expansion.' },
   quick: { name: 'Quick Draw', min: 2, max: 6, summary: 'A short free-for-all. Last player standing wins.' },
   showdown: { name: 'Three-Seat Showdown', min: 3, max: 3, summary: 'Three public roles with individual targets.' }
 };
+
+export const CHARACTERS = [
+  {name:'Bart Cassidy',hp:4,ability:'Draw a card for each health point lost.'},
+  {name:'El Gringo',hp:3,ability:'Take a random card from the attacker for each health point lost, if they have any.'},
+  {name:'Rose Doolan',hp:4,ability:'See other players at distance 1 less, minimum 1.'},
+  {name:'Paul Regret',hp:3,ability:'Other players see you at distance 1 greater.'},
+  {name:'Willy the Kid',hp:4,ability:'Play any number of Shoot cards during your turn.'},
+  {name:'Slab the Killer',hp:4,ability:'Your Shoot requires two Dodge cards to stop.'},
+  {name:'Vulture Sam',hp:4,ability:'Collect the cards and equipment of eliminated players.'}
+];
 
 const EVENTS = [
   { name: 'Dust Storm', text: 'Weapon range is reduced by 1 (minimum 1).' },
@@ -84,10 +94,12 @@ export function startRoom(room, token) {
   if (room.started) throw Error('Game already started.');
   if (room.players.length < mode.min) throw Error(`${mode.name} needs at least ${mode.min} players.`);
   const roles = rolesFor(room.mode, room.players.length);
+  const characters = shuffle(CHARACTERS);
   room.deck = buildDeck(room.mode);
   room.players.forEach((p, i) => {
     p.role = roles[i];
-    p.maxHp = p.role === 'Sheriff' ? 5 : 4;
+    p.character = characters[i];
+    p.maxHp = p.character.hp + (p.role === 'Sheriff' ? 1 : 0);
     p.hp = p.maxHp;
     draw(room, p, p.hp);
   });
@@ -119,7 +131,7 @@ function distance(room, a, b) {
   const living = active(room);
   const ai = living.indexOf(a), bi = living.indexOf(b);
   const gap = Math.abs(ai - bi);
-  return Math.min(gap, living.length - gap);
+  return Math.max(1, Math.min(gap, living.length - gap) + (b.character?.name === 'Paul Regret' ? 1 : 0) - (a.character?.name === 'Rose Doolan' ? 1 : 0));
 }
 function checkWinner(room, killer, victim) {
   const living = active(room);
@@ -141,15 +153,21 @@ function checkWinner(room, killer, victim) {
 function damage(room, target, source, type) {
   target.hp--;
   log(room, `${target.name} loses 1 health.`, { kind: 'damage', from: source?.id, to: target.id, label: type });
+  if (target.character?.name === 'Bart Cassidy') draw(room,target,1);
+  if (target.character?.name === 'El Gringo' && source?.hand.length) target.hand.push(...source.hand.splice(randomInt(source.hand.length),1));
   if (target.hp <= 0) {
-    room.discard.push(...target.hand);
+    const scavenger = active(room).find(p=>p.character?.name === 'Vulture Sam');
+    const possessions = [...target.hand, ...(target.weaponCard ? [target.weaponCard] : [])];
+    if(scavenger) scavenger.hand.push(...possessions); else room.discard.push(...possessions);
     target.hand = [];
     target.weapon = null;
+    target.weaponCard = null;
     log(room, `${target.name} is eliminated. Role: ${target.role}.`, { kind: 'eliminate', to: target.id });
+    if(room.mode === 'showdown' && source) draw(room,source,3);
     if (room.mode !== 'quick' && room.mode !== 'showdown') {
       if (target.role === 'Outlaw' && source) draw(room, source, 3);
       if (source?.role === 'Sheriff' && target.role === 'Deputy') {
-        room.discard.push(...source.hand); source.hand = []; source.weapon = null;
+        room.discard.push(...source.hand,...(source.weaponCard?[source.weaponCard]:[])); source.hand = []; source.weapon = null; source.weaponCard = null;
       }
     }
     checkWinner(room, source, target);
@@ -194,7 +212,7 @@ export function act(room, token, action) {
       return;
     }
     if (player.hp > 0 && !room.winner) {
-      player.hp = 0; room.discard.push(...player.hand); player.hand = []; player.weapon = null;
+      player.hp = 0; room.discard.push(...player.hand,...(player.weaponCard?[player.weaponCard]:[])); player.hand = []; player.weapon = null; player.weaponCard = null;
       log(room, `${player.name} forfeited and left. Role: ${player.role}.`, {kind:'eliminate',to:player.id});
       checkWinner(room, null, player);
       if (!active(room).length) { room.winner = 'The table is empty.'; room.phase = 'finished'; }
@@ -221,6 +239,11 @@ export function act(room, token, action) {
     const index = player.hand.findIndex(c => c.id === action.cardId && c.type === needed);
     if (index < 0) throw Error(`You need a ${needed} card.`);
     room.discard.push(...player.hand.splice(index, 1));
+    if ((room.pending.blocksNeeded || 1) > 1) {
+      room.pending.blocksNeeded--;
+      log(room,`${player.name} plays Dodge. One more Dodge is required against Slab the Killer.`,{kind:'block',to:player.id,label:'Dodge'});
+      return;
+    }
     resolvePending(room, true);
     return;
   }
@@ -245,7 +268,7 @@ export function act(room, token, action) {
   const played = player.hand[index];
   const target = room.players.find(p => p.id === action.targetId && p.hp > 0);
   if (played.type === 'Shoot') {
-    if (room.usedShot) throw Error('Only one Shoot card per turn.');
+    if (room.usedShot && player.character?.name !== 'Willy the Kid') throw Error('Only one Shoot card per turn.');
     if (!target || target === player) throw Error('Choose another player.');
     const range = Math.max(1, (player.weapon ? 3 : 1) - (room.mode === 'highnoon' && EVENTS[room.eventIndex].name === 'Dust Storm' ? 1 : 0));
     if (distance(room, player, target) > range) throw Error('Target is out of range.');
@@ -258,14 +281,16 @@ export function act(room, token, action) {
     if (room.usedSpell) throw Error('Only one spell per turn.');
     room.usedSpell = true;
   } else if (played.type === 'Dodge' || played.type === 'Ward') throw Error('Save this card for a response.');
+  else if (played.type === 'Tonic' && player.hp >= player.maxHp) throw Error('Health is already full.');
+  else if (played.type === 'Rifle' && player.weapon) throw Error('You already have a Rifle equipped.');
   player.hand.splice(index, 1);
-  room.discard.push(played);
+  if (played.type !== 'Rifle') room.discard.push(played);
   log(room, `${player.name} plays ${played.type}${target ? ` on ${target.name}` : ''}.`, { kind: 'play', from: player.id, to: target?.id, label: played.type });
-  if (played.type === 'Rifle') player.weapon = 'Rifle';
+  if (played.type === 'Rifle') { player.weapon = 'Rifle'; player.weaponCard = played; }
   if (played.type === 'Tonic') player.hp = Math.min(player.maxHp, player.hp + 1);
   if (['Shoot', 'Dust Hex', 'Lantern Burst'].includes(played.type)) {
     const targets = played.type === 'Lantern Burst' ? room.players.filter(p => p.hp > 0 && p !== player).map(p => p.id) : [target.id];
-    room.pending = { type: played.type, source: player.id, targets, index: 0 };
+    room.pending = { type: played.type, source: player.id, targets, index: 0, blocksNeeded: played.type === 'Shoot' && player.character?.name === 'Slab the Killer' ? 2 : 1 };
     room.phase = 'response';
   }
 }
@@ -280,11 +305,11 @@ export function view(room, token) {
     host: room.host === self.id, selfId: self.id, hand: self.hand,
     role: self.role, version: room.version, phase: room.phase, winner: room.winner,
     turnId: room.players[room.turn]?.id,
-    pending: room.pending && { type: room.pending.type, source: room.pending.source, targetId: room.pending.targets[room.pending.index], index: room.pending.index + 1, total: room.pending.targets.length },
+    pending: room.pending && { type: room.pending.type, source: room.pending.source, targetId: room.pending.targets[room.pending.index], index: room.pending.index + 1, total: room.pending.targets.length, blocksNeeded: room.pending.blocksNeeded || 1 },
     usedShot: room.usedShot, usedSpell: room.usedSpell,
     event: room.mode === 'highnoon' && room.eventIndex >= 0 ? EVENTS[room.eventIndex] : null,
     deckCount: room.deck.length, discardCount: room.discard.length, handLimit: self.hp > 0 ? handLimit(room, self) : 0,
-    players: room.players.map(p => ({ id: p.id, name: p.name, bot: !!p.bot, hp: p.hp, maxHp: p.maxHp, handCount: p.hand.length, weapon: p.weapon, role: p === self || p.role === 'Sheriff' || room.mode === 'showdown' || p.hp <= 0 || room.winner ? p.role : null })),
+    players: room.players.map(p => ({ id: p.id, name: p.name, character:p.character || null, distance:room.started&&p.hp>0&&self.hp>0?distance(room,self,p):null, bot: !!p.bot, hp: p.hp, maxHp: p.maxHp, handCount: p.hand.length, weapon: p.weapon, role: p === self || p.role === 'Sheriff' || room.mode === 'showdown' || p.hp <= 0 || room.winner ? p.role : null })),
     history: room.history.slice(0, 15)
   };
 }

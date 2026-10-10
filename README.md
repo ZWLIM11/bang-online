@@ -30,7 +30,7 @@ The deployed Worker URL is printed by Wrangler. A plain static Pages deployment 
 | --- | --- | --- |
 | Classic Saloon | 4–7 | Hidden Sheriff, Deputy, Outlaw and Renegade roles; clockwise turns, range, shots, Dodge, healing and equipment. |
 | Hex & Holsters | 4–7 | Classic roles plus Dust Hex, Ward and Lantern Burst. One spell per turn. |
-| High Noon Events | 4–7 | Classic roles plus a public rotating event: Dust Storm, Open Bar or Long Shadows. |
+| Saloon Events (house mode) | 4–7 | Classic roles plus a public rotating event: Dust Storm, Open Bar or Long Shadows. |
 | Quick Draw | 2–6 | Short free-for-all, one card drawn per turn. Last player alive wins. |
 | Three-Seat Showdown | 3 | Public Deputy, Outlaw and Renegade roles with distinct targets. |
 
@@ -58,3 +58,9 @@ Use Play solo with AI for an immediate match in the selected mode. Lobby hosts c
 My seat gives a seated first-person camera; drag to look around. Seated view and Table view restore overview cameras. Tip hat, Cheers and Challenge publish shared character gestures with a three-second cooldown. Shooting uses character aim/recoil and a muzzle flash, blocked attacks lean aside, damage recoils, and eliminated figures slump. These are procedural animations, not motion-captured characters or free-roaming controls.
 
 The daylight art asset public/art/saloon-daylight.png was created with built-in image_gen. Prompt: cinematic sunlit frontier saloon, honey-colored wood, teal window frames, swinging doors onto a red-rock town, amber lamps, poker table, chairs and balcony, bright inviting atmosphere, realistic materials, no people, no text, no black vignette.
+
+## October 11 rules and presentation audit
+
+See [RULES-AUDIT.md](RULES-AUDIT.md) for source links and explicit coverage. Seven public character abilities are now assigned uniquely; the Sheriff bonus uses character health. Rifle cards persist as equipment, Slab needs two Dodges, Willy can shoot repeatedly, distance abilities affect both server validation and target UI, and three-seat eliminations award three cards. The other nine base characters and the full official deck are not implemented.
+
+The seated camera now begins at your own seat. Models use shaped torsos, jaws, eyelids, hats, belts, holsters and seated legs. Casting sends an illustrated 3D card onto the table; drink/equip/cast/shoot have different motions. Log entries are raised clickable panels and remain visible at mobile widths. No external character models or rigs were added.

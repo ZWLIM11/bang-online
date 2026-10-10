@@ -12,7 +12,7 @@ export function botMove(s) {
   for(const c of s.hand){
     if(c.type==='Tonic'&&me.hp<me.maxHp)moves.unshift({type:'play',cardId:c.id});
     if(c.type==='Rifle'&&!me.weapon)moves.unshift({type:'play',cardId:c.id});
-    if((c.type==='Shoot'&&!s.usedShot)||(c.type==='Dust Hex'&&!s.usedSpell))for(const p of targets){if(s.role==='Deputy'&&p.role==='Sheriff')continue;moves.push({type:'play',cardId:c.id,targetId:p.id});}
+    if((c.type==='Shoot'&&(!s.usedShot||me.character?.name==='Willy the Kid'))||(c.type==='Dust Hex'&&!s.usedSpell))for(const p of targets){if(s.role==='Deputy'&&p.role==='Sheriff')continue;moves.push({type:'play',cardId:c.id,targetId:p.id});}
     if(c.type==='Lantern Burst'&&!s.usedSpell&&s.role!=='Deputy')moves.push({type:'play',cardId:c.id});
   }
   moves.push({type:'end'});return moves;

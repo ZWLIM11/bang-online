@@ -17,6 +17,15 @@ let state = null;
 let selected = null;
 let selectedMode = 'hex';
 let lastEffect = 0;
+const effectQueue=[];
+let showingEffect=false;
+function drainEffects(){
+  if(showingEffect||!effectQueue.length)return;
+  showingEffect=true;
+  const {entry,next}=effectQueue.shift();
+  showEffect({...entry.effect,message:entry.message},next);
+  setTimeout(()=>{showingEffect=false;drainEffects();},matchMedia('(prefers-reduced-motion: reduce)').matches?450:1450);
+}
 let timer;
 const descriptions = {
   Shoot: 'Attack one player in weapon range. They may Dodge.',
@@ -96,7 +105,10 @@ function render(next) {
   renderSidebar(next);
   renderControls(next); ui.update(next);
   const events=next.history.filter(entry=>entry.id>lastEffect&&entry.effect).reverse();
-  events.forEach(entry=>showEffect(entry.effect,next));
+  // A reconnect shows the latest state without replaying an entire old shootout.
+  if(state) events.forEach(entry=>effectQueue.push({entry,next}));
+  if(effectQueue.length>18)effectQueue.splice(0,effectQueue.length-18);
+  drainEffects();
   lastEffect=Math.max(lastEffect,next.history[0]?.id||0);
 }
 function renderSeats(next) {
@@ -141,7 +153,11 @@ function renderSidebar(next) {
   document.querySelector('.bot-controls')?.classList.toggle('hidden',next.started||!next.host);
   const history = $('history'); history.replaceChildren();
   if (!next.history.length) history.append(el('p', 'quiet', 'The saloon is quiet.'));
-  next.history.forEach(entry => history.append(el('p', '', entry.message)));
+  next.history.forEach(entry => {
+    const row=el('button',`log-entry log-${entry.effect?.kind||'turn'}`);
+    row.type='button';row.append(el('small','',`#${entry.id} · ${entry.effect?.kind?.toUpperCase()||'TABLE'}`),el('span','',entry.message));
+    row.onclick=()=>ui.log(entry);history.append(row);
+  });
 }
 function renderControls(next) {
   const me = next.players.find(p => p.id === next.selfId);
@@ -160,7 +176,7 @@ function renderControls(next) {
 }
 function showEffect(effect, next) {
   saloon?.play(effect);
-  const announcement = document.getElementById('action-announcement'); announcement.textContent = effect.label || effect.kind.toUpperCase(); announcement.classList.remove('hidden'); clearTimeout(announcement.timeout); announcement.timeout = setTimeout(() => announcement.classList.add('hidden'), 2400);
+  const announcement = document.getElementById('action-announcement'); announcement.replaceChildren(el('small','',effect.kind==='play'?'CARD PLAYED':effect.kind.toUpperCase()),el('strong','',effect.label||'TABLE ACTION'),el('span','',effect.message||'')); announcement.classList.remove('hidden'); clearTimeout(announcement.timeout); announcement.timeout = setTimeout(() => announcement.classList.add('hidden'), 2400);
   const stage = $('action-stage');
   $('action-icon').textContent = icons[effect.label] || (effect.kind === 'damage' ? '✷' : '✦');
   $('action-label').textContent = effect.label || effect.kind.toUpperCase();

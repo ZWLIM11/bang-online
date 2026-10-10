@@ -7,6 +7,7 @@ const setup = mode => {
   const room = createRoom(mode, 'Host');
   for (let i = 1; i < MODES[mode].min; i++) joinRoom(room, `Player ${i}`);
   startRoom(room, room.players[0].token);
+  room.players.forEach(p=>p.character=null);
   return room;
 };
 const addCard = (player, type) => {
