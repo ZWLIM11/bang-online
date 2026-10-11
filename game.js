@@ -1,3 +1,4 @@
+import {startBase,actBase,viewBase} from './base-game.js';
 // Web Crypto is available in both Node.js and Cloudflare Workers.
 const randomUUID = () => crypto.randomUUID();
 const randomInt = max => {
@@ -9,11 +10,12 @@ const randomInt = max => {
 };
 
 export const MODES = {
-  classic: { name: 'Classic Saloon · adapted', min: 4, max: 7, summary: 'BANG!-inspired subset: hidden roles and seven character abilities. Not the full official deck.' },
-  hex: { name: 'Hex & Holsters', min: 4, max: 7, summary: 'Classic roles with visible tabletop spells.' },
+  standard: {name:'BANG! · base rules',min:4,max:7,summary:'All 16 base characters, 80 cards, choice abilities and official card effects. No custom spells.'},
+  classic: { name: 'Classic BANG! · base rules', min: 4, max: 7, summary: 'All 16 base characters and the official 80-card deck. No custom spells.' },
+  hex: { name: 'Hex & Holsters · house mode', min: 4, max: 7, summary: 'Custom reduced deck with Dust Hex, Ward and Lantern Burst. Not official BANG! rules.' },
   highnoon: { name: 'Saloon Events · house mode', min: 4, max: 7, summary: 'Three original rotating events. Not the official High Noon expansion.' },
   quick: { name: 'Quick Draw', min: 2, max: 6, summary: 'A short free-for-all. Last player standing wins.' },
-  showdown: { name: 'Three-Seat Showdown', min: 3, max: 3, summary: 'Three public roles with individual targets.' }
+  showdown: { name: 'Three-Seat Showdown', min: 3, max: 3, summary: 'Official three-player cyclic roles with all 16 base characters and the base deck.' }
 };
 
 export const CHARACTERS = [
@@ -93,6 +95,7 @@ export function startRoom(room, token) {
   if (room.players[0].token !== token) throw Error('Only the host can start the game.');
   if (room.started) throw Error('Game already started.');
   if (room.players.length < mode.min) throw Error(`${mode.name} needs at least ${mode.min} players.`);
+  if(['standard','classic','showdown'].includes(room.mode)){startBase(room);return;}
   const roles = rolesFor(room.mode, room.players.length);
   const characters = shuffle(CHARACTERS);
   room.deck = buildDeck(room.mode);
@@ -153,8 +156,8 @@ function checkWinner(room, killer, victim) {
 function damage(room, target, source, type) {
   target.hp--;
   log(room, `${target.name} loses 1 health.`, { kind: 'damage', from: source?.id, to: target.id, label: type });
-  if (target.character?.name === 'Bart Cassidy') draw(room,target,1);
-  if (target.character?.name === 'El Gringo' && source?.hand.length) target.hand.push(...source.hand.splice(randomInt(source.hand.length),1));
+  if (target.hp>0 && target.character?.name === 'Bart Cassidy') draw(room,target,1);
+  if (target.hp>0 && target.character?.name === 'El Gringo' && source?.hand.length) target.hand.push(...source.hand.splice(randomInt(source.hand.length),1));
   if (target.hp <= 0) {
     const scavenger = active(room).find(p=>p.character?.name === 'Vulture Sam');
     const possessions = [...target.hand, ...(target.weaponCard ? [target.weaponCard] : [])];
@@ -204,6 +207,7 @@ export function act(room, token, action) {
     if (Date.now()-(player.lastEmote||0)<3000) throw Error('Wait a moment before another gesture.');
     player.lastEmote=Date.now(); log(room, `${player.name} ${ {wave:'tips their hat',cheers:'raises a toast',taunt:'challenges the table'}[action.emote]}.`, {kind:'emote',from:player.id,label:action.emote}); return;
   }
+  if(room.official){actBase(room,token,action);return;}
   if (action.type === 'leave') {
     if (!room.started) {
       room.players = room.players.filter(p => p !== player);
@@ -298,6 +302,7 @@ function handLimit(room, player) {
   return Math.max(1, player.hp + (room.mode === 'highnoon' && EVENTS[room.eventIndex].name === 'Long Shadows' ? 1 : 0));
 }
 export function view(room, token) {
+  if(room.official)return viewBase(room,token,MODES[room.mode]);
   const self = room.players.find(p => p.token === token);
   if (!token || !self) throw Error('Player not found.');
   return {

@@ -28,20 +28,20 @@ The deployed Worker URL is printed by Wrangler. A plain static Pages deployment 
 
 | Mode | Players | Rules in this prototype |
 | --- | --- | --- |
-| Classic Saloon | 4–7 | Hidden Sheriff, Deputy, Outlaw and Renegade roles; clockwise turns, range, shots, Dodge, healing and equipment. |
+| BANG! base rules | 4–7 | All 16 base characters, 80 playing cards, suits/ranks, choice abilities and official base card effects. |
 | Hex & Holsters | 4–7 | Classic roles plus Dust Hex, Ward and Lantern Burst. One spell per turn. |
 | Saloon Events (house mode) | 4–7 | Classic roles plus a public rotating event: Dust Storm, Open Bar or Long Shadows. |
 | Quick Draw | 2–6 | Short free-for-all, one card drawn per turn. Last player alive wins. |
-| Three-Seat Showdown | 3 | Public Deputy, Outlaw and Renegade roles with distinct targets. |
+| Three-Seat Showdown | 3 | Public cyclic roles, all 16 base characters and the base 80-card deck. |
 
-The game uses original card names and simplified card sets. It is a playable foundation, not a complete digital edition of BANG! or its expansions. The original tabletop rules and expansions are published by [dV Games](https://www.dvgiochi.com/area-download/index.cfm?lang=eng). Any commercial use of BANG! names, art, or exact content would require appropriate rights.
+Base-rules tables implement the base set. The other house modes retain simplified original decks. Expansion decks are not included; magic spells belong only to Hex & Holsters. The original tabletop rules and expansions are published by [dV Games](https://www.dvgiochi.com/area-download/index.cfm?lang=eng). Any commercial use of BANG! names, art, or exact content would require appropriate rights.
 
 ## Table action flow
 
 1. The server validates the active player, card, target and range.
 2. It removes the card from that player's private hand and publishes the play in the shared event log.
 3. Every connected client displays the action on the centre of the table and highlights the seats involved.
-4. A target may block with Dodge or Ward. The server resolves the response before damage.
+4. A target chooses a legal card or character response. The server resolves checks, damage and possible rescue before continuing.
 5. The server sends each player a filtered view of the same authoritative game state.
 
 The scene uses Three.js WebGL with original modeled cowboy figures, weapons, lanterns, mugs, ammunition, a wooden table and a furnished saloon bar. Drag to rotate the camera or switch between seated and overhead views. Weapon and spell effects follow public game events; costumes never reveal hidden roles. A CSS table remains available when WebGL cannot initialize. These are stylized procedural models, not photorealistic scanned people. Three.js 0.170.0 is vendored under its included MIT license.
@@ -61,6 +61,6 @@ The daylight art asset public/art/saloon-daylight.png was created with built-in 
 
 ## October 11 rules and presentation audit
 
-See [RULES-AUDIT.md](RULES-AUDIT.md) for source links and explicit coverage. Seven public character abilities are now assigned uniquely; the Sheriff bonus uses character health. Rifle cards persist as equipment, Slab needs two Dodges, Willy can shoot repeatedly, distance abilities affect both server validation and target UI, and three-seat eliminations award three cards. The other nine base characters and the full official deck are not implemented.
+See [RULES-AUDIT.md](RULES-AUDIT.md) for publisher sources and coverage. Fresh base-rules tables include all 16 characters and all 80 cards, with private/public choice dialogs, accurate response types, equipment, delayed checks and lethal rescue. Previously started rooms retain their old engine; create a fresh base-rules table. Custom magic and event modes are separately labelled.
 
 The seated camera now begins at your own seat. Models use shaped torsos, jaws, eyelids, hats, belts, holsters and seated legs. Casting sends an illustrated 3D card onto the table; drink/equip/cast/shoot have different motions. Log entries are raised clickable panels and remain visible at mobile widths. No external character models or rigs were added.

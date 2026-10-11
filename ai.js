@@ -1,6 +1,8 @@
 import {act,view} from './game.js';
+import {baseBotMove} from './base-ai.js';
 // Bots only choose from the same filtered view a human receives.
 export function botMove(s) {
+  if(s.official)return baseBotMove(s);
   const me=s.players.find(p=>p.id===s.selfId);
   if(s.pending){const c=s.hand.find(c=>c.type===(s.pending.type==='Shoot'?'Dodge':'Ward'));return [c?{type:'block',cardId:c.id}:{type:'pass'}];}
   if(s.phase==='discard'){const c=[...s.hand].sort((a,b)=>Number(a.type==='Dodge')-Number(b.type==='Dodge'))[0];return [{type:'discard',cardId:c.id}];}
@@ -19,7 +21,8 @@ export function botMove(s) {
 }
 export function tickBots(room,now=Date.now()) {
   if(!room.started||room.winner||now<(room.nextBotAt||0))return false;
-  const p=room.pending?room.players.find(p=>p.id===room.pending.targets[room.pending.index]):room.players[room.turn];
+  const responder=room.choice?.playerId||room.dying?.playerId||room.pending?.targets[room.pending.index];
+  const p=responder?room.players.find(p=>p.id===responder):room.players[room.turn];
   if(!p?.bot)return false;
   const s=view(room,p.token);
   for(const move of botMove(s)){try{act(room,p.token,move);room.nextBotAt=now+1700;return true;}catch{ /* Engine rejects out-of-range or unavailable moves. */ }}

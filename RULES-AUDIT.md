@@ -1,31 +1,30 @@
 # Rules audit — 11 October 2026
 
-Sources: [official BANG! base rules](https://bang.dvgiochi.com/content/1/docs/01_bang_rules_EN.pdf) and [Dodge City rules](https://www.dvgiochi.com/giochi/dodgecity/download/bang_dodge_city-rules.pdf).
+## Sources and scope
 
-This build is an adaptation, not a complete digital edition. The reference picture guides appearance, not rules. In particular its Dynamite, Panic! and Winchester text is incorrect.
+- [Publisher base rulebook](https://bang.dvgiochi.com/content/1/docs/01_bang_rules_EN.pdf)
+- [Publisher FAQ](https://www.dvgiochi.com/giochi/bang/download/Bang!_FAQ_ENG.pdf)
+- [Publisher base card list](https://bang.dvgiochi.com/cardslist.php?id=1)
+- [Dodge City three-player rules](https://www.dvgiochi.com/giochi/dodgecity/download/bang_dodge_city-rules.pdf)
 
-## Playable modes
+The reference picture guides appearance, not rules. Its Dynamite, Panic! and Winchester descriptions are incorrect: Dynamite can deal three damage to its holder, Panic! steals within distance one, and Winchester has range five.
 
-- Classic Saloon: core hidden-role objectives, role distributions, Sheriff bonus, clockwise play, living-seat distance, one shot per turn, reactions, rewards and Sheriff penalty. Reduced original deck.
-- Hex & Holsters: custom spell rules; not an official expansion.
-- Saloon Events: three custom rotating events; renamed to avoid representing this as official High Noon.
-- Quick Draw: custom free-for-all, one-card draw.
-- Three-Seat Showdown: public cyclic objectives from Dodge City's three-player variant; three-card kill reward. Uses this project's reduced deck.
+## New base-rules tables
 
-## Character coverage
+BANG! base rules (4–7 players) and the legacy Classic identifier now use a separate authoritative engine with the 80-card base distribution, suits/ranks, all 16 unique base characters, role objectives, Sheriff health bonus, draw/play/discard phases, living-seat distance, equipment, reactions and elimination rewards/penalties. Three-Seat Showdown uses the same cards and characters with Dodge City's public cyclic objectives and three-card elimination reward.
 
-Implemented and tested: Bart Cassidy, El Gringo, Rose Doolan, Paul Regret, Willy the Kid, Slab the Killer, Vulture Sam. Assigned without duplicates. Abilities are public; roles retain their visibility rules.
+Character choices are explicit: Kit Carlson privately keeps two of three; Lucky Duke chooses one of two public draw-check results and discards both; Jesse Jones and Pedro Ramirez choose their first draw source; Sid Ketchum selects two hand cards to heal. General Store is selected clockwise. Black Jack reveals the second normal draw. Calamity Janet swaps BANG!/Missed!, Jourdonnais stacks with Barrel, and Suzy waits for a Duel to finish. Bart and El Gringo only draw after surviving damage. Vulture inherits before a Sheriff/Deputy penalty.
 
-Not implemented: Black Jack, Calamity Janet, Jesse Jones, Jourdonnais, Kit Carlson, Lucky Duke, Pedro Ramirez, Sid Ketchum, Suzy Lafayette. They must not be presented as selectable/playable until their abilities and draw/response choices are supported.
+Implemented base cards: BANG!, Missed!, Beer, Saloon, Stagecoach, Wells Fargo, General Store, Panic!, Cat Balou, Duel, Gatling, Indians!, Barrel, Jail, Dynamite, Mustang, Scope, Volcanic, Schofield, Remington, Rev. Carabine and Winchester. Choice dialogs cover reactions, Barrel checks, lethal Beer/Sid rescue, equipment targets and elimination discard order. Dynamite resolves before Jail. Weapons affect BANG! range, not Panic! distance.
 
-## Card coverage
+## Explicit exclusions / house modes
 
-Shoot/Dodge use the basic attack/response pattern. Rifle stays in play at range three and is inherited/discarded on elimination. Tonic is a house card; unlike official Beer it works with two survivors and does not rescue lethal damage. Dust Hex, Ward and Lantern Burst are custom spells. Spell range uses the same adjusted distance as other actions.
+This is not every published expansion or a tournament platform. Dodge City expansion cards/characters, official High Noon, A Fistful of Cards, Wild West Show, Gold Rush, The Valley of Shadows, Armed & Dangerous, Great Train Robbery, Legends and other expansion sets are not included. The three-player variant is included without adding Dodge City's expansion deck.
 
-Not implemented: the official 80-card distribution, suits/ranks, named guns, Beer, Saloon, Stagecoach, Wells Fargo, General Store, Panic!, Cat Balou, Duel, Gatling, Indians!, Barrel, Jail, Dynamite, Scope, Mustang and expansion decks. None are listed as playable in the skill library.
+Hex & Holsters retains its original reduced deck and three custom magic cards: Dust Hex, Ward and Lantern Burst. BANG!'s base game has no magic-spell deck. Saloon Events has three original house events, not the official High Noon expansion. Quick Draw remains a custom free-for-all. These modes use the original seven-character subset and do not claim full base rules. Forfeit and AI pacing are digital house behavior.
 
-Image corrections: official Winchester range is five; Panic! steals one card at distance one; Dynamite is a delayed draw check and can cause three damage to its holder. It is not a one-damage attack against everyone.
+Previously started rooms retain their original engine for compatibility. Create a fresh BANG! base-rules table to use the new rules. AI uses filtered player views and resolves the same server-validated choices as humans.
 
-## Presentation
+## Verification
 
-Shared public play events drive a sequential animation queue, physical illustrated card motion to the table, and separate shooting, casting, drinking, equipping and hit reactions. Reconnecting skips old animation history. Log rows open details and remain available on mobile. Characters are self-contained procedural meshes, not photorealistic scans or externally downloaded rigs.
+Automated engine and Worker tests cover character choices, hand privacy, legal responses, distance, guns, lethal rescue, Duel attribution, Jail/Dynamite ordering, Vulture penalties, discard order, three-player rewards and Durable Object eviction during a private choice. Repeated full AI games check progress and conservation of all 80 unique card IDs. Browser verification covers a real Kit Carlson choice and the resulting hand. This is implementation coverage, not a claim that every possible interaction has been exhaustively proven.

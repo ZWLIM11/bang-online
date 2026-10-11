@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {act,createRoom,joinRoom,startRoom,view,CHARACTERS} from './game.js';
 const card=type=>({id:crypto.randomUUID(),type});
-function setup(mode='quick',count=4){const r=createRoom(mode,'One');for(let i=1;i<count;i++)joinRoom(r,'Player '+i);startRoom(r,r.players[0].token);r.players.forEach(p=>{p.character=null;p.hp=p.maxHp=4;p.hand=[];});r.turn=0;return r;}
+function setup(mode='quick',count=4){const r=createRoom(mode,'One');for(let i=1;i<count;i++)joinRoom(r,'Player '+i);startRoom(r,r.players[0].token);r.players.forEach(p=>{p.character=null;p.hp=p.maxHp=4;p.hand=[];});r.turn=0;r.phase='play';r.choice=null;r.pending=null;return r;}
 const character=(p,name)=>p.character=CHARACTERS.find(c=>c.name===name);
-function shoot(r,a,b){const c=card('Shoot');a.hand.push(c);act(r,a.token,{type:'play',cardId:c.id,targetId:b.id});}
+function shoot(r,a,b){const c=card(r.official?'BANG!':'Shoot');a.hand.push(c);act(r,a.token,{type:'play',cardId:c.id,targetId:b.id});}
 test('characters are unique, public, and determine health with Sheriff bonus',()=>{const r=createRoom('classic','One');for(let i=1;i<7;i++)joinRoom(r,'P'+i);startRoom(r,r.players[0].token);assert.equal(new Set(r.players.map(p=>p.character.name)).size,7);for(const p of r.players)assert.equal(p.maxHp,p.character.hp+(p.role==='Sheriff'?1:0));assert.ok(view(r,r.players[0].token).players.every(p=>p.character));});
 test('Slab requires two responses and Willy can shoot twice',()=>{const r=setup(),[a,b]=r.players;character(a,'Slab the Killer');b.hand=[card('Dodge'),card('Dodge')];shoot(r,a,b);act(r,b.token,{type:'block',cardId:b.hand[0].id});assert.equal(r.pending.blocksNeeded,1);act(r,b.token,{type:'block',cardId:b.hand[0].id});assert.equal(r.pending,null);assert.equal(b.hp,4);character(a,'Willy the Kid');shoot(r,a,b);act(r,b.token,{type:'pass'});shoot(r,a,b);assert.equal(r.pending.source,a.id);});
 test('distance modifiers stack and are reflected in the public view',()=>{const r=setup(),[a,b]=r.players;character(b,'Paul Regret');assert.equal(view(r,a.token).players[1].distance,2);assert.throws(()=>shoot(r,a,b),/range/);character(a,'Rose Doolan');assert.equal(view(r,a.token).players[1].distance,1);shoot(r,a,b);});

@@ -1,3 +1,4 @@
+import {BASE_CARDS,SUITS} from './base-catalog.js';
 import { initInteractions } from './interactions.js';
 import { artwork, portrait } from './art.js';
 let saloon = null;
@@ -15,7 +16,7 @@ const session = JSON.parse(sessionStorage.getItem('saloon-session') || 'null');
 let current = session;
 let state = null;
 let selected = null;
-let selectedMode = 'hex';
+let selectedMode = 'standard';
 let lastEffect = 0;
 const effectQueue=[];
 let showingEffect=false;
@@ -28,6 +29,7 @@ function drainEffects(){
 }
 let timer;
 const descriptions = {
+  ...BASE_CARDS,
   Shoot: 'Attack one player in weapon range. They may Dodge.',
   Dodge: 'Block a Shoot when you are targeted.',
   Tonic: 'Recover 1 health, up to your maximum.',
@@ -122,7 +124,7 @@ function renderSeats(next) {
     seat.style.top = `${50 + Math.sin(angle) * 37}%`;
     const avatar = el('div', 'portrait-badge'); portrait(avatar, i);
     const info = el('button', 'seat-info'); info.type = 'button'; info.setAttribute('aria-label', 'Inspect ' + player.name); info.onclick = () => ui.player(player.id);
-    info.append(el('strong', '', player.name + (player.id === next.selfId ? ' · YOU' : '')), el('small', '', next.started ? `${'●'.repeat(Math.max(0, player.hp))}  ${player.handCount} cards${player.weapon ? ' · Rifle' : ''}` : 'Waiting'));
+    info.append(el('strong', '', player.name + (player.id === next.selfId ? ' · YOU' : '')), el('small', '', next.started ? `${'●'.repeat(Math.max(0, player.hp))}  ${player.handCount} cards${player.weapon ? ' · '+player.weapon : ''}` : 'Waiting'));
     if (player.role) info.append(el('span', 'role-chip', player.role));
     seat.append(avatar, info); area.append(seat);
   });
@@ -133,7 +135,7 @@ function renderHand(next) {
   next.hand.forEach(card => {
     const item = el('button', `hand-card ${card.type.includes('Hex') || card.type === 'Ward' || card.type.includes('Burst') ? 'arcane' : ''}`);
     item.type = 'button';
-    item.append(el('span', 'card-corner', 'H&H'), el('span', 'card-icon', icons[card.type]), el('strong', '', card.type), el('small', '', descriptions[card.type]));
+    item.append(el('span', 'card-corner', card.suit?`${({11:'J',12:'Q',13:'K',14:'A'})[card.rank]||card.rank}${SUITS[card.suit]}`:'H&H'), el('span', 'card-icon', icons[card.type]||'✦'), el('strong', '', card.type), el('small', '', descriptions[card.type]));
     artwork(item.querySelector('.card-icon'),card.type);
     if (card.id === selected) item.classList.add('selected');
     item.onclick = () => ui.inspect(card.id);
@@ -172,7 +174,14 @@ function renderControls(next) {
   if (next.phase === 'discard' && myTurn) {
     $('play').classList.remove('hidden'); $('play').textContent = 'Discard selected';
   } else $('play').textContent = 'Play selected';
-  if (next.started && me?.hp <= 0) $('prompt').textContent = 'You are out. You can watch the rest of the game.';
+  if(next.official){
+    $('play').classList.add('hidden');$('target').classList.add('hidden');
+    $('end').classList.toggle('hidden',!myTurn||!!next.pending||!!next.choice||!!next.dying||next.phase!=='play');
+    if(next.choice)$('prompt').textContent=next.choice.playerId===next.selfId?next.choice.title:'Waiting for '+next.players.find(p=>p.id===next.choice.playerId)?.name+' to choose.';
+    else if(next.dying)$('prompt').textContent='Resolve lethal damage: Beer or Sid Ketchum may save a life.';
+    else if(responding)$('prompt').textContent=next.pending.type+' targets you. Respond with '+next.pending.needs+' or take damage.';
+  }
+  if (next.started && me?.hp <= 0 && !next.dying && !next.choice) $('prompt').textContent = 'You are out. You can watch the rest of the game.';
 }
 function showEffect(effect, next) {
   saloon?.play(effect);
@@ -221,9 +230,10 @@ async function loadModes() {
   try {
     const modes = await api('/api/modes');
     Object.entries(modes).forEach(([id, mode]) => {
+      if(id==='classic')return; // Legacy room identifier for the same base mode.
       const button = el('button', `mode-option ${id === selectedMode ? 'chosen' : ''}`);
       button.type = 'button';
-      button.append(el('span', 'mode-symbol', { classic: '♠', hex: '✦', highnoon: '☀', quick: '✷', showdown: '★' }[id]), el('strong', '', mode.name), el('small', '', `${mode.min}–${mode.max} players · ${mode.summary}`));
+      button.append(el('span', 'mode-symbol', { standard:'★', classic: '♠', hex: '✦', highnoon: '☀', quick: '✷', showdown: '★' }[id]), el('strong', '', mode.name), el('small', '', `${mode.min}–${mode.max} players · ${mode.summary}`));
       button.onclick = () => { selectedMode = id; document.querySelectorAll('.mode-option').forEach(x => x.classList.remove('chosen')); button.classList.add('chosen'); };
       $('modes').append(button);
     });
@@ -243,13 +253,14 @@ const cameraFirst=el('button','','My seat');cameraFirst.onclick=()=>saloon?.firs
 const gestures=el('div','gesture-bar');gestures.setAttribute('aria-label','Character gestures');
 [['wave','Tip hat'],['cheers','Cheers'],['taunt','Challenge']].forEach(([emote,label])=>{const b=el('button','small-btn',label);b.onclick=()=>action({type:'emote',emote});gestures.append(b);});$('camera-tools').after(gestures);
 $('end').onclick = () => ui.end();
-$('pass').onclick = () => action({ type: 'pass' });
+$('pass').onclick = () => state?.official?ui.response():action({ type: 'pass' });
 $('play').onclick = () => {
   if (!selected) return toast('Select a card first.');
   action(state.phase === 'discard' ? { type: 'discard', cardId: selected } : { type: 'play', cardId: selected, targetId: $('target').value });
   selected = null;
 };
 $('block').onclick = () => {
+  if(state.official)return ui.response();
   const needed = state.pending.type === 'Shoot' ? 'Dodge' : 'Ward';
   const card = state.hand.find(c => c.id === selected && c.type === needed) || state.hand.find(c => c.type === needed);
   if (!card) return toast(`You need a ${needed} card to block.`);

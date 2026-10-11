@@ -79,6 +79,8 @@ export function createSaloon(host) {
   const atlas=new T.TextureLoader().load('/art/cards.png');atlas.colorSpace=T.SRGBColorSpace;
   const cardTypes=['Shoot','Dodge','Tonic','Rifle','Dust Hex','Ward','Lantern Burst'];
   const cardFaces=cardTypes.map((_,i)=>{const t=atlas.clone();t.repeat.set(.25,.5);t.offset.set((i%4)*.25,i<4?.5:0);return new T.MeshStandardMaterial({map:t,roughness:.82,side:T.DoubleSide});});
+  const extraFaces=new Map();
+  function faceFor(label){const i=cardTypes.indexOf(label);if(i>=0)return cardFaces[i];if(!extraFaces.has(label)){const c=document.createElement('canvas');c.width=256;c.height=384;const x=c.getContext('2d');x.fillStyle='#ead3a2';x.fillRect(0,0,256,384);x.strokeStyle='#794522';x.lineWidth=10;x.strokeRect(12,12,232,360);x.fillStyle='#472b1c';x.textAlign='center';x.font='bold 25px Georgia';label.split(' ').forEach((word,j)=>x.fillText(word,128,105+j*36,216));x.font='90px Georgia';x.fillText('♠',128,295);const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;extraFaces.set(label,new T.MeshStandardMaterial({map,roughness:.82,side:T.DoubleSide}));}return extraFaces.get(label);}
   const playedCard=mesh(scene,new T.PlaneGeometry(.8,1.16),cardFaces[0],.7,2.34,0);playedCard.rotation.x=-Math.PI/2;playedCard.visible=false;
   const palettes=[['#393b35','#922e23'],['#67452e','#dfb05b'],['#283b44','#8b6542'],['#4b3049','#d0a980'],['#82613b','#293e36'],['#322a28','#877a62'],['#484b59','#a24c28']];
   function figure(index) {
@@ -140,6 +142,7 @@ export function createSaloon(host) {
     state.players.forEach((p,i)=>{let f=figures.get(p.id);if(!f){f=figure(i);scene.add(f.g);figures.set(p.id,f);}const a=(i-Math.max(0,state.players.findIndex(p=>p.id===state.selfId)))*Math.PI*2/Math.max(count,1);f.g.position.set(Math.sin(a)*4.5,0,Math.cos(a)*4.5);f.g.rotation.y=a+Math.PI;f.weapon.visible=!!p.weapon;f.base.visible=p.id===state.turnId;f.g.scale.setScalar(1.35);f.g.scale.y=1.35;});
   }
   function play(effect){
+    const aliases={'BANG!':'Shoot','Missed!':'Dodge',Beer:'Tonic',Volcanic:'Rifle',Schofield:'Rifle',Remington:'Rifle','Rev. Carabine':'Rifle',Winchester:'Rifle'};effect={...effect,label:aliases[effect.label]||effect.label};
     const shooter=figures.get(effect.from), victim=figures.get(effect.to);
     const from=shooter?.g.position.clone()||new T.Vector3();const to=victim?.g.position.clone()||new T.Vector3();from.y=to.y=2.9;
     const spell=/Hex|Ward|Burst/.test(effect.label||'');const group=new T.Group();scene.add(group);
@@ -149,7 +152,7 @@ export function createSaloon(host) {
     const halo=mesh(group,new T.TorusGeometry(.36,.028,8,50),new T.MeshBasicMaterial({color:spell?'#ba88ff':'#ffc76b',transparent:true}));halo.rotation.x=Math.PI/2;halo.position.copy(to);halo.visible=attack||effect.kind==='block';
     let flying;
     if(effect.kind==='play'){
-      const i=cardTypes.indexOf(effect.label);if(i>=0){flying=mesh(group,new T.PlaneGeometry(.8,1.16),cardFaces[i]);flying.rotation.x=-Math.PI/2;playedCard.material=cardFaces[i];playedCard.visible=false;}
+      const face=faceFor(effect.label||'Card');flying=mesh(group,new T.PlaneGeometry(.8,1.16),face);flying.rotation.x=-Math.PI/2;playedCard.material=face;playedCard.visible=false;
       if(shooter)shooter.motion={kind:effect.label==='Shoot'?'shoot':effect.label==='Tonic'?'drink':effect.label==='Rifle'?'equip':'cast',start:performance.now(),target:to};
     }
     if(victim&&['damage','block','eliminate'].includes(effect.kind))victim.motion={kind:effect.kind,start:performance.now()};

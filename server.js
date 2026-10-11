@@ -52,7 +52,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method !== 'GET') return json(res, 404, { error: 'Not found.' });
     const filename = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'interactions.js', 'interactions.css', 'art.js', 'art/portraits.png', 'art/cards.png', 'daylight.css', 'art/saloon-daylight.png', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
+    if (!['index.html', 'style.css', 'fx.css', 'client.js', 'scene.css', 'saloon.js', 'interactions.js', 'interactions.css', 'art.js', 'base-ui.js', 'base-catalog.js', 'art/portraits.png', 'art/cards.png', 'daylight.css', 'art/saloon-daylight.png', 'vendor/three.module.js'].includes(filename)) return json(res, 404, { error: 'Not found.' });
     const bytes = await readFile(join(root, filename));
     res.writeHead(200, { 'content-type': mime[extname(filename)], 'cache-control': 'no-cache' });
     res.end(bytes);

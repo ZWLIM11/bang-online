@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker, { SaloonRoom } from './server/worker.mjs';
+import {act} from './game.js';
 
 const base = 'https://bang.example';
 const post = (path, input, token) => new Request(base + path, {
@@ -35,6 +36,17 @@ function cloudflareMock() {
   };
   return { env, stores, objects };
 }
+
+test('base character choices survive Durable Object eviction and stay private',async()=>{
+ const {env,stores,objects}=cloudflareMock();
+ const created=await(await worker.fetch(post('/api/create',{name:'Kit',mode:'standard'}),env)).json();
+ const others=[];for(let i=0;i<3;i++)others.push(await(await worker.fetch(post('/api/join',{name:'P'+i,code:created.code}),env)).json());
+ await worker.fetch(post('/api/action',{code:created.code,action:{type:'start'}},created.token),env);
+ const room=stores.get(created.code).get('room');if(room.choice?.cards)room.deck.push(...room.choice.cards);room.choice=null;room.pending=null;room.phase='play';room.turn=3;room.players[0].character={name:'Kit Carlson',hp:4};room.deck.push(...room.players[3].hand);room.players[3].hand=[];act(room,room.players[3].token,{type:'end'});objects.clear();
+ const state=async token=>(await(await worker.fetch(new Request(`${base}/api/state?code=${created.code}`,{headers:{authorization:`Bearer ${token}`}}),env)).json());
+ const owner=await state(created.token);assert.equal(owner.choice.options.length,3);assert.equal((await state(others[0].token)).choice.options.length,0);
+ const response=await worker.fetch(post('/api/action',{code:created.code,action:{type:'choose',ids:owner.choice.options.slice(0,2).map(o=>o.id)}},created.token),env);assert.equal(response.status,200);assert.equal((await response.json()).choice,null);
+});
 
 test('Cloudflare Worker serves assets and preserves private multiplayer rooms', async () => {
   const { env, stores, objects } = cloudflareMock();
