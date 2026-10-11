@@ -80,7 +80,7 @@ function choose(r,p,a){const q=r.choice;if(!q||q.playerId!==p.id)throw Error('Th
  note(r,`${p.name} completes ${q.kind==='kit'?'Kit Carlson’s draw':q.kind==='check'?'the draw! check':'the choice'}.`);suzy(r);
 }
 function storeChoice(r){if(r.store.index>=r.store.players.length||!r.store.cards.length){r.discard.push(...r.store.cards);r.store=null;r.phase='play';suzy(r);return;}const p=byId(r,r.store.players[r.store.index]);choice(r,p,'store','Choose one card from General Store',r.store.cards.map(c=>({id:c.id,label:cardLabel(c),card:c})));}
-function sid(r,p,a){if(!is(p,'Sid Ketchum')||p.eliminated||p.hp>=p.maxHp)throw Error('Sid cannot heal now.');if(!Array.isArray(a.ids)||a.ids.length!==2)throw Error('Choose exactly two hand cards.');throwCards(r,p,a.ids);p.hp++;note(r,`${p.name} uses Sid Ketchum to heal.`,{kind:'play',from:p.id,label:'Beer'});if(r.dying?.playerId===p.id&&p.hp>0){const d=r.dying;r.dying=null;survivalAbility(r,p,byId(r,d.sourceId),d.amount);continueAfter(r,d.after);}suzy(r);}
+function sid(r,p,a){if(!is(p,'Sid Ketchum')||p.eliminated||p.hp>=p.maxHp)throw Error('Sid cannot heal now.');if(!Array.isArray(a.ids)||a.ids.length!==2)throw Error('Choose exactly two hand cards.');throwCards(r,p,a.ids);p.hp++;note(r,`${p.name} uses Sid Ketchum to heal.`,{kind:'play',from:p.id,label:'Beer'});if(r.dying?.playerId===p.id&&p.hp>0){const d=r.dying;r.dying=null;survivalAbility(r,p,byId(r,d.sourceId),d.amount);continueAfter(r,d.after);}suzy(r);if(r.phase==='discard'&&r.players[r.turn]===p&&p.hand.length<=p.hp)next(r);}
 export function actBase(r,token,a){const p=r.players.find(p=>p.token===token);if(!p||!token)throw Error('Player not found.');
  if(a.type==='leave'){leave(r,p);return;}
  if(r.winner)throw Error('The game has ended.');
